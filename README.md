@@ -1,6 +1,6 @@
 # pygit
 
-### A version Control System ( Git wannabe ) writtin in python whie trying to understand how git works under the hood
+### A version Control System ( Git wannabe ) written in python while trying to understand how git works under the hood
 
 # contributing
 
@@ -10,16 +10,16 @@
 git clone https://github.com/3brady/pygit.git
 ```
 
-## 2 - set up the enviroment 
+## 2 - set up the environment 
 
 ```bash
 python3 -m venv env
 ```
 
-## 3 - installing the requriments 
+## 3 - installing the requirements 
 
 ```bash
-pip install -r requriment.txt
+pip install -r requirements.txt
 ```
 
 after that you are good to go
