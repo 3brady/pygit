@@ -8,18 +8,26 @@
 
 ```bash
 git clone https://github.com/3brady/pygit.git
+cd pygit
 ```
 
 ## 2 - set up the environment 
 
 ```bash
 python3 -m venv env
+source env/bin/activate
 ```
 
-## 3 - installing the requirements 
+## 3 - installing the requirements
 
 ```bash
 pip install -r requirements.txt
 ```
 
-after that you are good to go
+## 4 - install pygit in editable mode
+
+```bash
+pip install -e .
+```
+
+after that you are good to go, run `pygit` to try it out
