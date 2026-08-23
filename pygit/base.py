@@ -21,6 +21,8 @@ def write_tree (directory='.'):
             elif entry.is_dir (follow_symlinks=False):
                 type_ = 'tree'
                 oid = write_tree (full)
+            else :
+                continue
             entries.append ((entry.name, oid, type_))
 
     tree = ''.join (f'{type_} {oid} {name}\n'
@@ -54,12 +56,35 @@ def get_tree (oid, base_path=''):
     return result
 
 
+def _empty_cuurent_directory():
+    for root , dirnames , filenames in os.walk('.',topdown=False):
+        for filename in filenames:
+            path = os.path.relpath( f'{root}/{filename}' )
+            if is_ignored (path) or not os.path.isfile(path):
+                continue
+
+        for dirname in dirnames:
+            path = os.path.relpath( f'{root}/{dirname}' )
+            if is_ignored (path) :
+                continue
+            try :
+                os.rmdir (path)
+            except ( FileNotFoundError , OSError ) :
+                pass
 
 def read_tree (tree_oid):
+    _empty_cuurent_directory()
     for path, oid in get_tree (tree_oid, base_path='./').items ():
         os.makedirs (os.path.dirname (path), exist_ok=True)
         with open (path, 'wb') as f:
             f.write (data.get_object (oid))
+
+def commit(message) :
+    commit = f'tree {write_tree()}\n'
+    commit += '\n'
+    commit += f'{message}\n'
+
+    return data.hash_object (commit.encode(), 'tree')
 
 
 def is_ignored (path):
