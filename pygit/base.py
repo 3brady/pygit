@@ -88,4 +88,4 @@ def commit(message) :
 
 
 def is_ignored (path):
-    return '.ugit' in path.split ('/')
+    return '.pygit' in path.split ('/')
