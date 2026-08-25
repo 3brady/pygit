@@ -8,5 +8,6 @@ setup(
         'console_scripts': [
             'pygit=pygit.cli:main',
         ]
-    }
+    },
+    install_requires = ['colorama' , 'pyfiglet' , 'setuptools']
 )
