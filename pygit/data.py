@@ -6,15 +6,19 @@ def init():
     os.makedirs(GIT_DIR)
     os.makedirs(f'{GIT_DIR}/objects')
 
-def set_HEAD(oid):
-    with open(f'{GIT_DIR}/HEAD' , 'w') as f:
+def update_ref(ref , oid):
+    ref_path = f'{GIT_DIR}/{ref}'
+    os.makedirs(os.path.dirname(ref_path) , exist_ok=True)
+    with open(ref_path , 'w') as f :
         f.write(oid)
 
-def get_HEAD():
-    if os.path.isfile(f'{GIT_DIR}/HEAD'):
-        with open(f'{GIT_DIR}/HEAD' , 'r') as f:
+def get_ref(ref):
+    ref_path = f'{GIT_DIR}/{ref}'
+    if os.path.isfile(ref_path):
+        with open(ref_path, 'r') as f :
             return f.read().strip()
     return None
+
 
 def hash_object(data, type_="blob"):
     obj = type_.encode() + b'\x00' + data

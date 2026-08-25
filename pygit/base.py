@@ -83,7 +83,7 @@ def read_tree (tree_oid):
 def commit(message) :
     commit = f'tree {write_tree()}\n'
 
-    HEAD = data.get_HEAD()
+    HEAD = data.get_ref('HEAD')
     if HEAD :
         commit += f'parent {HEAD}\n'
 
@@ -91,14 +91,18 @@ def commit(message) :
     commit += f'{message}\n'
 
     oid = data.hash_object( commit.encode() , 'commit' )
-    data.set_HEAD(oid)
+    data.update_ref('HEAD' , oid)
     return oid
 
 
 def checkout(oid):
     commit = get_commit(oid)
     read_tree(commit.tree)
-    data.set_HEAD(oid)
+    data.update_ref('HEAD' , oid)
+
+def create_tag(name , oid):
+    data.update_ref(f'refs/tags/{name}' , oid)
+    pass
 
 Commit = namedtuple('Commit', ['tree' , 'parent' , 'message' ])
 
@@ -121,6 +125,9 @@ def get_commit(oid) :
     message = '\n'.join(lines)
 
     return Commit( tree = tree , parent = parent , message = message )
+
+def get_oid(name):
+    return data.get_ref(name) or name
 
 def is_ignored (path):
     return '.pygit' in path.split ('/')
