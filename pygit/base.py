@@ -3,6 +3,9 @@ import os, itertools, operator, string
 from collections import namedtuple, deque
 from . import data
 
+def init():
+    data.init()
+    data.update_ref('HEAD' , data.RefValue(symbolic=True, value='refs/heads/master') )
 
 def write_tree(directory='.'):
     entries = []
@@ -56,13 +59,25 @@ def get_tree(oid, base_path=''):
     return result
 
 
-def _empty_cuurent_directory():
+def get_working_tree():
+    result = {}
+    for root , _ , filenames in os.walk('.') :
+        for filename in filenames :
+            path = os.path.relpath(f'{root}/{filename}')
+            if is_ignored(path) or not os.path.isfile(path):
+                continue
+            with open (path, 'rb') as f:
+                result[path] = data.hash_object(f.read())
+
+    return result
+
+def _empty_current_directory():
     for root, dirnames, filenames in os.walk('.', topdown=False):
         for filename in filenames:
             path = os.path.relpath(f'{root}/{filename}')
             if is_ignored(path) or not os.path.isfile(path):
                 continue
-
+            os.remove(path)
         for dirname in dirnames:
             path = os.path.relpath(f'{root}/{dirname}')
             if is_ignored(path):
@@ -73,8 +88,9 @@ def _empty_cuurent_directory():
                 pass
 
 
+
 def read_tree(tree_oid):
-    _empty_cuurent_directory()
+    _empty_current_directory()
     for path, oid in get_tree(tree_oid, base_path='./').items():
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, 'wb') as f:
@@ -96,11 +112,20 @@ def commit(message):
     return oid
 
 
-def checkout(oid):
+def checkout(name):
+    oid = get_oid(name)
     commit = get_commit(oid)
     read_tree(commit.tree)
-    data.update_ref('HEAD', data.RefValue(symbolic=False, value=oid))
 
+    if is_branch(name) :
+        HEAD = data.RefValue(symbolic=True , value = f'refs/heads/{name}')
+    else :
+        HEAD = data.RefValue(symbolic=False , value = oid)
+
+    data.update_ref('HEAD' , HEAD , deref=False)
+
+def reset(oid):
+    data.update_ref('HEAD' , data.RefValue(symbolic=False , value=oid))
 
 def create_tag(name, oid):
     data.update_ref(f'refs/tags/{name}', data.RefValue(symbolic=False, value=oid))
@@ -109,6 +134,23 @@ def create_tag(name, oid):
 def create_branch(name, oid):
     data.update_ref(f'refs/heads/{name}', data.RefValue(symbolic=False, value=oid))
 
+
+def iter_branch_name():
+    for refname , _ in data.iter_refs('refs/heads/'):
+        yield os.path.relpath(refname , 'refs/heads/')
+
+def is_branch(branch):
+    return data.get_ref(f'refs/heads/{branch}').value is not None
+
+
+def get_branch_name():
+    HEAD = data.get_ref('HEAD' , deref=False)
+    if not HEAD.symbolic:
+        return None
+
+    HEAD = HEAD.value
+    assert HEAD.startswith('refs/heads/')
+    return os.path.relpath(HEAD , 'refs/heads')
 
 Commit = namedtuple('Commit', ['tree', 'parent', 'message'])
 

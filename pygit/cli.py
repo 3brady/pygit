@@ -1,7 +1,7 @@
 import argparse, os, sys, pyfiglet, textwrap, subprocess
 from colorama import Fore
 
-from . import data, base
+from . import data, base , diff
 
 
 def main():
@@ -47,7 +47,7 @@ def parse_args():
 
     checkout_parser = commands.add_parser('checkout', help='checkout to a diiferent commit')
     checkout_parser.set_defaults(func=checkout)
-    checkout_parser.add_argument('oid', type=oid)
+    checkout_parser.add_argument('commit')
 
     tag_parser = commands.add_parser('tag', help='tag a commit')
     tag_parser.set_defaults(func=tag)
@@ -59,60 +59,131 @@ def parse_args():
 
     branch_parser = commands.add_parser('branch', help="branch")
     branch_parser.set_defaults(func=branch)
-    branch_parser.add_argument('name')
-    branch_parser.add_argument('starting_point', default='@', nargs='?')
+    branch_parser.add_argument('name' , nargs='?')
+    branch_parser.add_argument('start_point', default='@', nargs='?')
+
+    status_parser = commands.add_parser('status' , help='displays the status of the files')
+    status_parser.set_defaults(func = status)
+
+    reset_parser = commands.add_parser('reset' , help='reset pygit repository')
+    reset_parser.set_defaults(func = reset)
+    reset_parser.add_argument('commit' , type=oid)
+
+    show_parser = commands.add_parser('show' , help='show a history')
+    show_parser.set_defaults(func = show)
+    show_parser.add_argument('oid' , default='@' , type = oid , nargs='?')
+
+    diff_parser = commands.add_parser('diff' , help='displays the differnce between two trees , usually the first one of them is the working tree ')
+    diff_parser.set_defaults(func = _diff)
+    diff_parser.add_argument('commit' , default='@' , type=oid , nargs='?')
 
     return parser.parse_args()
 
 
-def init(args):
-    data.init()
-    print(f"Initialized empty pygit repository at {os.getcwd()}/{data.GIT_DIR}")
+def init (args):
+    base.init()
+    print (f'Initialized empty ugit repository in {os.getcwd()}/{data.GIT_DIR}')
 
 
-def hash_object(args):
-    with open(args.file, 'rb') as f:
-        print(data.hash_object(f.read()))
+def hash_object (args):
+    with open (args.file, 'rb') as f:
+        print (data.hash_object (f.read ()))
 
 
-def cat_file(args):
-    sys.stdout.flush()
-    sys.stdout.buffer.write(data.get_object(args.object, expected=None))
+def cat_file (args):
+    sys.stdout.flush ()
+    sys.stdout.buffer.write (data.get_object (args.object, expected=None))
 
 
-def write_tree(args):
-    print(base.write_tree())
+def write_tree (args):
+    print (base.write_tree ())
 
 
-def read_tree(args):
-    base.read_tree(args.tree)
+def read_tree (args):
+    base.read_tree (args.tree)
 
 
-def commit(args):
-    print(base.commit(args.message))
+def commit (args):
+    print (base.commit (args.message))
 
 
-def log(args):
-    for oid in base.iter_commits_and_parents({args.oid}):
-        commit = base.get_commit(oid)
+def _print_commit(oid , commit , refs = None):
+    refs_str = f' ({", ".join(refs)})' if refs else ''
+    print( Fore.YELLOW  , f'commit {oid}{refs_str}\n')
+    print( Fore.WHITE , textwrap.indent(commit.message , '    ' ))
+    print('')
 
-        print(Fore.YELLOW, f'commit {oid}\n')
-        print(Fore.WHITE, textwrap.indent(commit.message, '    '))
-        print('')
+def log (args):
 
-
-def checkout(args):
-    base.checkout(args.oid)
-
-
-def branch(args):
-    base.create_branch(args.name, args.starting_point)
-    print(f'Branch {args.name} created at {args.starting_point}')
+    refs = {}
+    for refname , ref in data.iter_refs():
+        refs.setdefault(ref.value, []).append(refname)
 
 
-def tag(args):
-    base.create_tag(args.name, args.oid)
+    for oid in base.iter_commits_and_parents ({args.oid}):
+        commit = base.get_commit (oid)
+        _print_commit(oid , commit , refs.get(oid))
 
+def show(args):
+    if not args.oid:
+        return
+    commit = base.get_commit(args.oid)
+    parent_tree = None
+    if commit.parent:
+        parent_tree = base.get_commit(commit.parent).tree
+
+    _print_commit(args.oid , commit)
+    result = diff.diff_trees(
+        base.get_tree(parent_tree) , base.get_tree(commit.tree))
+
+    sys.stdout.flush ()
+    sys.stdout.buffer.write (result)
+
+def checkout (args):
+    base.checkout (args.commit)
+
+
+def tag (args):
+    base.create_tag (args.name, args.oid)
+
+
+def branch (args):
+    if not args.name:
+        current = base.get_branch_name()
+        for branch in base.iter_branch_name():
+            if branch == current :
+                print( Fore.RED , f'* {branch}')
+            else :
+                print( Fore.WHITE , branch)
+    else :
+        base.create_branch(args.name , args.start_point)
+        print(f'Branch {args.name} created at {args.start_point[:10]}')
+
+
+def status(args):
+    HEAD = base.get_oid('@')
+    branch = base.get_branch_name()
+    if branch :
+        print(f'On branch {branch}')
+    else :
+        print(f'HEAD detached at {HEAD[:10]}')
+
+    print('\nChanges to be commited:\n')
+    HEAD_tree = HEAD and base.get_commit(HEAD).tree
+
+    for path , action in diff.iter_changed_files(base.get_tree(HEAD_tree) , base.get_working_tree()):
+        print(f'{action:>12}: {path}')
+
+def reset(args):
+    base.reset(args.oid)
+
+
+def _diff(args):
+    tree = args.commit and base.get_commit(args.commit).tree
+
+    result = diff.diff_trees( base.get_tree(tree) , base.get_working_tree() )
+    sys.stdout.flush ()
+    sys.stdout.buffer.write (result)
 
 # for visualization / mostly vibe-coded :)
 # ==========================================================================#
