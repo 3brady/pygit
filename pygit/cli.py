@@ -60,7 +60,7 @@ def parse_args():
     branch_parser = commands.add_parser('branch', help="branch")
     branch_parser.set_defaults(func=branch)
     branch_parser.add_argument('name' , nargs='?')
-    branch_parser.add_argument('start_point', default='@', nargs='?')
+    branch_parser.add_argument('start_point', default='@', type=oid , nargs='?')
 
     status_parser = commands.add_parser('status' , help='displays the status of the files')
     status_parser.set_defaults(func = status)
@@ -77,12 +77,17 @@ def parse_args():
     diff_parser.set_defaults(func = _diff)
     diff_parser.add_argument('commit' , default='@' , type=oid , nargs='?')
 
+    merge_parser = commands.add_parser('merge' , help='merge two commits , or branches')
+    merge_parser.set_defaults(func = merge)
+    merge_parser.add_argument('commit' , type = oid)
+
+
     return parser.parse_args()
 
 
 def init (args):
     base.init()
-    print (f'Initialized empty ugit repository in {os.getcwd()}/{data.GIT_DIR}')
+    print (f'Initialized empty pygit repository in {os.getcwd()}/{data.GIT_DIR}')
 
 
 def hash_object (args):
@@ -129,8 +134,8 @@ def show(args):
         return
     commit = base.get_commit(args.oid)
     parent_tree = None
-    if commit.parent:
-        parent_tree = base.get_commit(commit.parent).tree
+    if commit.parents:
+        parent_tree = base.get_commit(commit.parents[0]).tree
 
     _print_commit(args.oid , commit)
     result = diff.diff_trees(
@@ -168,14 +173,18 @@ def status(args):
     else :
         print(f'HEAD detached at {HEAD[:10]}')
 
-    print('\nChanges to be commited:\n')
+    MERGE_HEAD = data.get_ref('MERGE_HEAD').value
+    if MERGE_HEAD :
+        print(f'Merging with{MERGE_HEAD[:10]}')
+
+    print('\nChanges to be committed:\n')
     HEAD_tree = HEAD and base.get_commit(HEAD).tree
 
     for path , action in diff.iter_changed_files(base.get_tree(HEAD_tree) , base.get_working_tree()):
         print(f'{action:>12}: {path}')
 
 def reset(args):
-    base.reset(args.oid)
+    base.reset(args.commit)
 
 
 def _diff(args):
@@ -185,10 +194,13 @@ def _diff(args):
     sys.stdout.flush ()
     sys.stdout.buffer.write (result)
 
+def merge(args):
+    base.merge (args.commit)
+
 # for visualization / mostly vibe-coded :)
 # ==========================================================================#
 def vis(args):
-    head = data.get_ref('HEAD')
+    head = base.get_oid('@')
     dot = 'digraph commit {\n'
     dot += 'bgcolor="transparent"\n'
     dot += 'node [fontname="Helvetica" fontsize=11]\n'
@@ -213,8 +225,10 @@ def vis(args):
         dot += (f'"{oid}" [shape=box style="filled,rounded" '
                 f'fillcolor="{fillcolor}" color="{bordercolor}" '
                 f'penwidth=1.5 label="{label}" margin=0.15]\n')
-        if commit.parent:
-            dot += f'"{oid}" -> "{commit.parent}"\n'
+        for parent in commit.parents:
+            dot += f'"{oid}" -> "{parent}"\n'
+        if commit.parents:
+            dot += f'"{oid}" -> "{commit.parents[0]}"\n'
 
     dot += '}'
     print(dot)
