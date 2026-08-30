@@ -5,8 +5,9 @@ from . import data, base , diff
 
 
 def main():
-    args = parse_args()
-    args.func(args)
+    with data.change_git_dir('.'):
+        args = parse_args()
+        args.func(args)
 
 
 def parse_args():
@@ -234,8 +235,6 @@ def vis(args):
                 f'penwidth=1.5 label="{label}" margin=0.15]\n')
         for parent in commit.parents:
             dot += f'"{oid}" -> "{parent}"\n'
-        if commit.parents:
-            dot += f'"{oid}" -> "{commit.parents[0]}"\n'
 
     dot += '}'
     print(dot)

@@ -109,9 +109,9 @@ def commit(message):
     HEAD = data.get_ref('HEAD').value
     if HEAD:
         commit += f'parent {HEAD}\n'
-    MERGE_HEAD = data.get_ref('MERGED_HEAD').value
+    MERGE_HEAD = data.get_ref('MERGE_HEAD').value
     if MERGE_HEAD:
-        commit += f'parent {MERGE_HEAD}'
+        commit += f'parent {MERGE_HEAD}\n'
         data.delete_ref('MERGE_HEAD' , deref=True)
 
     commit += '\n'
