@@ -194,7 +194,7 @@ def status(args):
 
     MERGE_HEAD = data.get_ref('MERGE_HEAD').value
     if MERGE_HEAD :
-        print(f'Merging with{MERGE_HEAD[:10]}')
+        print(f'Merging with {MERGE_HEAD[:10]}')
 
     print('\nChanges to be committed:\n')
     HEAD_tree = HEAD and base.get_commit(HEAD).tree
