@@ -1,7 +1,7 @@
 import argparse, os, sys, pyfiglet, textwrap, subprocess
 from colorama import Fore
 
-from . import data, base , diff
+from . import data, base , diff , remote
 
 
 def main():
@@ -86,6 +86,15 @@ def parse_args():
     merge_base_parser.set_defaults(func = merge_base)
     merge_base_parser.add_argument('commit1' , type=oid)
     merge_base_parser.add_argument('commit2', type=oid)
+
+    fetch_parser = commands.add_parser('fetch' , help='fetch commits from remote repository')
+    fetch_parser.set_defaults(func = fetch)
+    fetch_parser.add_argument('remote')
+
+    push_parser = commands.add_parser('push' , help='push commits to a remote repo')
+    push_parser.set_defaults(func = push)
+    push_parser.add_argument('remote')
+    push_parser.add_argument('branch')
 
     return parser.parse_args()
 
@@ -204,6 +213,12 @@ def merge(args):
 
 def merge_base(args):
     print( base.get_merge_base(args.commit1 , args.commit2) )
+
+def fetch(args):
+    remote.fetch(args.remote)
+
+def push(args):
+    remote.push(args.remote , f'refs/heads/{args.branch}')
 
 # for visualization / mostly vibe-coded :)
 # ==========================================================================#
