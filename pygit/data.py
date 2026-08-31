@@ -97,7 +97,8 @@ def get_object(oid, expected='blob'):
     with open(f'{GIT_DIR}/objects/{oid}', 'rb') as f:
         obj = zlib.decompress(f.read())
 
-    type_, _, content = obj.partition(b'\x00')
+    header, _, content = obj.partition(b'\x00')
+    type_, _, _size = header.partition(b' ')
     type_ = type_.decode()
 
     if expected is not None:
