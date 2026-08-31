@@ -6,12 +6,12 @@ from . import data
 
 
 def compare_trees(*trees):
-    enries = defaultdict(lambda: [None] * len(trees))
+    entries = defaultdict(lambda: [None] * len(trees))
     for i, tree in enumerate(trees):
         for path, oid in tree.items():
-            enries[path][i] = oid
+            entries[path][i] = oid
 
-    for path, oids in enries.items():
+    for path, oids in entries.items():
         yield path, *oids
 
 
