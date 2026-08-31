@@ -9,5 +9,5 @@ setup(
             'pygit=pygit.cli:main',
         ]
     },
-    install_requires = ['colorama' , 'pyfiglet' , 'setuptools']
+    install_requires = ['colorama' , 'pyfiglet']
 )
