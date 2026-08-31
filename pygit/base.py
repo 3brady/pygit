@@ -19,12 +19,12 @@ def write_tree():
                 current = current.setdefault(dirname , {})
             current[filename] = oid
 
-    def wirte_tree_recursive(tree_dict):
+    def write_tree_recursive(tree_dict):
         entries = []
         for name , value in tree_dict.items():
             if type(value) is dict:
                 type_ = 'tree'
-                oid = wirte_tree_recursive(value)
+                oid = write_tree_recursive(value)
             else:
                 type_ = 'blob'
                 oid = value
@@ -35,7 +35,7 @@ def write_tree():
                        in sorted(entries))
         return data.hash_object(tree.encode(), 'tree')
 
-    return wirte_tree_recursive(index_as_tree)
+    return write_tree_recursive(index_as_tree)
 
 
 def _iter_tree_entries(oid):
