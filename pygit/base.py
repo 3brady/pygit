@@ -1,4 +1,4 @@
-import os, itertools, operator, string
+import os, itertools, operator, string , fnmatch
 from collections import namedtuple, deque
 from . import data , diff
 
@@ -317,5 +317,36 @@ def add(filenames):
             elif os.path.isdir(name):
                 add_directory(name)
 
+
+_ignore_patterns_cache = None
+
+def _load_ignore_patterns():
+    global _ignore_patterns_cache
+    if _ignore_patterns_cache is None:
+        _ignore_patterns_cache = []
+        if os.path.isfile('.pygitignore'):
+            with open('.pygitignore') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        _ignore_patterns_cache.append(line)
+    return _ignore_patterns_cache
+
 def is_ignored(path):
-    return '.pygit' in path.split('/')
+    if '.pygit' in path.split('/'):
+        return True
+
+    patterns = _load_ignore_patterns()
+    if not patterns:
+        return False
+
+    parts = path.split('/')
+    for pattern in patterns:
+        if pattern.endswith('/'):
+            dirname = pattern.rstrip('/')
+            if dirname in parts[:-1]:
+                return True
+        else:
+            if fnmatch.fnmatch(parts[-1], pattern):
+                return True
+    return False
